@@ -1,35 +1,68 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import { useState, useCallback } from 'react';
+import { PublicKeyEntry } from './components/PublicKeyEntry';
+import { FileList } from './components/FileList';
+import { DownloadModal } from './components/DownloadModal';
+import type { FileEntry } from './lib/types';
+import './App.css';
+
+type AppState =
+  | { screen: 'entry' }
+  | { screen: 'browsing'; pubkey: string }
+  | { screen: 'downloading'; pubkey: string; file: FileEntry };
 
 function App() {
-  const [count, setCount] = useState(0)
+  const [state, setState] = useState<AppState>({ screen: 'entry' });
+
+  const handleKeySubmit = useCallback((pubkey: string) => {
+    setState({ screen: 'browsing', pubkey });
+  }, []);
+
+  const handleBack = useCallback(() => {
+    setState({ screen: 'entry' });
+  }, []);
+
+  const handleDownload = useCallback((file: FileEntry) => {
+    if (state.screen === 'browsing') {
+      setState({ screen: 'downloading', pubkey: state.pubkey, file });
+    }
+  }, [state]);
+
+  const handleCloseDownload = useCallback(() => {
+    if (state.screen === 'downloading') {
+      setState({ screen: 'browsing', pubkey: state.pubkey });
+    }
+  }, [state]);
 
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
+    <div className="app">
+      {state.screen === 'entry' && (
+        <PublicKeyEntry onSubmit={handleKeySubmit} />
+      )}
+
+      {state.screen === 'browsing' && (
+        <FileList
+          pubkey={state.pubkey}
+          onDownload={handleDownload}
+          onBack={handleBack}
+        />
+      )}
+
+      {state.screen === 'downloading' && (
+        <>
+          <FileList
+            pubkey={state.pubkey}
+            onDownload={handleDownload}
+            onBack={handleBack}
+          />
+          <DownloadModal
+            file={state.file}
+            pubkey={state.pubkey}
+            onClose={handleCloseDownload}
+          />
+        </>
+      )}
+    </div>
+  );
 }
 
-export default App
+export default App;
