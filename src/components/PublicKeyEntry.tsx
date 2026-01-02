@@ -91,10 +91,10 @@ export function PublicKeyEntry({ onSubmit }: PublicKeyEntryProps) {
 
                 <form onSubmit={handleSubmit} className="entry-form">
                     <div className="input-group">
-                        <label htmlFor="key-input">Enter Public Key</label>
+                        <label htmlFor="key-input">Enter Public or Private Key</label>
                         <input
                             id="key-input"
-                            type="text"
+                            type="password"
                             value={input}
                             onChange={handleInputChange}
                             placeholder="npub1... or nsec1... (will be converted)"
