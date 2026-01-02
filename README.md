@@ -1,4 +1,4 @@
-# nostrdownload
+# Nostr Fetch
 
 Web UI for browsing and downloading files published with [`nostrsave`](https://github.com/andrewtheguy/nostrsave) on Nostr relays.
 

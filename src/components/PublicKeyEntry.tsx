@@ -109,7 +109,7 @@ export function PublicKeyEntry({ onSubmit }: PublicKeyEntryProps) {
         <div className="public-key-entry">
             <div className="entry-card">
                 <div className="entry-header">
-                    <h1>Nostr File Download</h1>
+                    <h1>Nostr Fetch</h1>
                     <p className="subtitle">
                         Download files saved by{' '}
                         <a href="https://github.com/andrewtheguy/nostrsave" target="_blank" rel="noreferrer">

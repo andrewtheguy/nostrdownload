@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="Nostr Fetch logo">
+  <circle cx="128" cy="128" r="104" fill="none" stroke="#0f172a" stroke-width="12" />
+  <path
+    d="M128 72v84"
+    fill="none"
+    stroke="#0f172a"
+    stroke-width="12"
+    stroke-linecap="round"
+  />
+  <path
+    d="M100 128l28 28 28-28"
+    fill="none"
+    stroke="#0f172a"
+    stroke-width="12"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+</svg>
