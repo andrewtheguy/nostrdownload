@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import {
     normalizeToPublicKey,
     clearSecretKey,
@@ -18,9 +18,9 @@ export function PublicKeyEntry({ onSubmit }: PublicKeyEntryProps) {
     const [displayNpub, setDisplayNpub] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [wasNsec, setWasNsec] = useState(false);
+    const inputRef = useRef<HTMLInputElement>(null);
 
-    const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-        const value = e.target.value;
+    const processInputValue = useCallback((value: string) => {
         setInput(value);
         setError(null);
         setDisplayNpub(null);
@@ -41,13 +41,37 @@ export function PublicKeyEntry({ onSubmit }: PublicKeyEntryProps) {
                 setDisplayNpub(npub);
                 setWasNsec(true);
 
-                // Clear the input field of the nsec
+                // Clear the input field of the nsec (state + DOM)
                 setInput('');
-            } catch (err) {
+                if (inputRef.current) {
+                    inputRef.current.value = '';
+                }
+            } catch {
                 setError('Invalid nsec format');
             }
         }
     }, []);
+
+    const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+        processInputValue(e.target.value);
+    }, [processInputValue]);
+
+    const handleInput = useCallback((e: React.FormEvent<HTMLInputElement>) => {
+        processInputValue(e.currentTarget.value);
+    }, [processInputValue]);
+
+    useEffect(() => {
+        const intervalId = window.setInterval(() => {
+            const el = inputRef.current;
+            if (!el) return;
+            const value = el.value;
+            if (value && value !== input) {
+                processInputValue(value);
+            }
+        }, 300);
+
+        return () => window.clearInterval(intervalId);
+    }, [input, processInputValue]);
 
     const handleSubmit = useCallback((e: React.FormEvent) => {
         e.preventDefault();
@@ -97,10 +121,12 @@ export function PublicKeyEntry({ onSubmit }: PublicKeyEntryProps) {
                             type="password"
                             value={input}
                             onChange={handleInputChange}
+                            onInput={handleInput}
                             placeholder="npub1... or nsec1... (will be converted)"
                             className={error ? 'error' : ''}
-                            autoComplete="off"
+                            autoComplete="new-password"
                             spellCheck={false}
+                            ref={inputRef}
                         />
                         {error && <span className="error-message">{error}</span>}
                     </div>
