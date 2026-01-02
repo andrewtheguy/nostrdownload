@@ -110,7 +110,13 @@ export function PublicKeyEntry({ onSubmit }: PublicKeyEntryProps) {
             <div className="entry-card">
                 <div className="entry-header">
                     <h1>Nostr File Download</h1>
-                    <p className="subtitle">Browse and download files from nostr relays</p>
+                    <p className="subtitle">
+                        Download files saved by{' '}
+                        <a href="https://github.com/andrewtheguy/nostrsave" target="_blank" rel="noreferrer">
+                            nostrsave
+                        </a>
+                        .
+                    </p>
                 </div>
 
                 <form onSubmit={handleSubmit} className="entry-form">
