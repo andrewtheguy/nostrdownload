@@ -85,6 +85,7 @@ export function FileDetail({ pubkey, npub, fileHash }: FileDetailProps) {
     const [previewError, setPreviewError] = useState<string | null>(null);
     const [previewProgress, setPreviewProgress] = useState(0);
     const [contentUrl, setContentUrl] = useState<string | null>(null);
+    const contentUrlRef = useRef<string | null>(null);
     const [contentType, setContentType] = useState('');
 
     const [downloadState, setDownloadState] = useState<DownloadState>({ status: 'idle' });
@@ -147,10 +148,11 @@ export function FileDetail({ pubkey, npub, fileHash }: FileDetailProps) {
             setPreviewLoading(false);
             setPreviewError(null);
             setPreviewProgress(0);
-            if (contentUrl) {
-                URL.revokeObjectURL(contentUrl);
-                setContentUrl(null);
+            if (contentUrlRef.current) {
+                URL.revokeObjectURL(contentUrlRef.current);
+                contentUrlRef.current = null;
             }
+            setContentUrl(null);
             return;
         }
 
@@ -169,10 +171,11 @@ export function FileDetail({ pubkey, npub, fileHash }: FileDetailProps) {
                 const blob = new Blob([result.data as unknown as BlobPart], { type: result.mimeType });
                 const url = URL.createObjectURL(blob);
                 localUrl = url;
-                setContentUrl((prev) => {
-                    if (prev) URL.revokeObjectURL(prev);
-                    return url;
-                });
+                if (contentUrlRef.current) {
+                    URL.revokeObjectURL(contentUrlRef.current);
+                }
+                contentUrlRef.current = url;
+                setContentUrl(url);
                 setContentType(result.mimeType);
                 setPreviewLoading(false);
             })
@@ -186,7 +189,12 @@ export function FileDetail({ pubkey, npub, fileHash }: FileDetailProps) {
         return () => {
             isMounted = false;
             controller.abort();
-            if (localUrl) URL.revokeObjectURL(localUrl);
+            if (localUrl) {
+                URL.revokeObjectURL(localUrl);
+                if (contentUrlRef.current === localUrl) {
+                    contentUrlRef.current = null;
+                }
+            }
         };
     }, [pubkey, fileHash, manifest, isPreviewable]);
 
