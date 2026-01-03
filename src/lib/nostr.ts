@@ -191,6 +191,43 @@ type ChunkCacheEntry = {
 const chunkCache = new Map<string, ChunkCacheEntry>();
 
 const CHUNK_ID_BATCH_SIZE = 200;
+const CHUNK_FETCH_MAX_WAIT_MS = 4000;
+
+async function fetchChunkEventsWithFilters(
+    pool: SimplePool,
+    relays: string[],
+    filters: Filter[],
+    onEvent: (event: { id: string; tags: string[][]; content: string }) => void,
+    shouldStop: () => boolean
+): Promise<void> {
+    return new Promise((resolve) => {
+        if (filters.length === 0) {
+            resolve();
+            return;
+        }
+
+        let resolved = false;
+        let remaining = filters.length;
+        const subs = filters.map((filter) => pool.subscribeManyEose(relays, filter, {
+            onevent(event) {
+                onEvent(event);
+                if (!resolved && shouldStop()) {
+                    resolved = true;
+                    subs.forEach((sub) => sub.close('all chunks collected'));
+                    resolve();
+                }
+            },
+            onclose() {
+                remaining -= 1;
+                if (!resolved && remaining <= 0) {
+                    resolved = true;
+                    resolve();
+                }
+            },
+            maxWait: CHUNK_FETCH_MAX_WAIT_MS
+        }));
+    });
+}
 
 function parseChunkIndexFromTags(tags: string[][]): number | null {
     const chunkTag = tags.find(t => t[0] === 'chunk');
@@ -253,45 +290,54 @@ export async function fetchChunks(
     }
 
     const fetchPromise = (async () => {
+        const handleEvent = (event: { id: string; tags: string[][]; content: string }) => {
+            if (seenEventIds.has(event.id)) return;
+            seenEventIds.add(event.id);
+
+            const parsedIndex = parseChunkIndexFromTags(event.tags);
+            const index = parsedIndex ?? indexByEventId.get(event.id);
+            if (index == null) return;
+
+            // Get encryption type from tags
+            const encryptionTag = event.tags.find(t => t[0] === 'encryption');
+            const encryption = encryptionTag?.[1] || 'none';
+
+            if (!chunksByIndex.has(index)) {
+                const chunk = {
+                    index,
+                    content: event.content,
+                    encryption,
+                };
+                chunksByIndex.set(index, chunk);
+                const entry = chunkCache.get(cacheKey);
+                if (entry) entry.chunksByIndex.set(index, chunk);
+                onProgress?.(chunksByIndex.size, totalChunks);
+            }
+        };
+
         if (indexByEventId.size > 0) {
             console.log('[fetchChunks] Using manifest event ids:', indexByEventId.size);
             const ids = Array.from(indexByEventId.keys());
 
             for (let i = 0; i < ids.length; i += CHUNK_ID_BATCH_SIZE) {
-            const batch = ids.slice(i, i + CHUNK_ID_BATCH_SIZE);
-            const filter: Filter = {
-                kinds: [EVENT_KINDS.CHUNK],
-                authors: [pubkey],
-                ids: batch,
-            };
-            console.log('[fetchChunks] Filter (ids batch):', filter);
+                const batch = ids.slice(i, i + CHUNK_ID_BATCH_SIZE);
+                const filter: Filter = {
+                    kinds: [EVENT_KINDS.CHUNK],
+                    authors: [pubkey],
+                    ids: batch,
+                };
+                console.log('[fetchChunks] Filter (ids batch):', filter);
 
-                const events = await pool.querySync(relays, filter);
-                console.log('[fetchChunks] Got events (ids batch):', events.length);
+                await fetchChunkEventsWithFilters(
+                    pool,
+                    relays,
+                    [filter],
+                    handleEvent,
+                    () => chunksByIndex.size >= totalChunks
+                );
 
-                for (const event of events) {
-                    if (seenEventIds.has(event.id)) continue;
-                    seenEventIds.add(event.id);
-
-                    const parsedIndex = parseChunkIndexFromTags(event.tags);
-                    const index = parsedIndex ?? indexByEventId.get(event.id);
-                    if (index == null) continue;
-
-                    // Get encryption type from tags
-                    const encryptionTag = event.tags.find(t => t[0] === 'encryption');
-                    const encryption = encryptionTag?.[1] || 'none';
-
-                    if (!chunksByIndex.has(index)) {
-                        const chunk = {
-                            index,
-                            content: event.content,
-                            encryption,
-                        };
-                        chunksByIndex.set(index, chunk);
-                        const entry = chunkCache.get(cacheKey);
-                        if (entry) entry.chunksByIndex.set(index, chunk);
-                        onProgress?.(chunksByIndex.size, totalChunks);
-                    }
+                if (chunksByIndex.size >= totalChunks) {
+                    break;
                 }
             }
         }
@@ -305,37 +351,16 @@ export async function fetchChunks(
             };
             console.log('[fetchChunks] Filter (fallback #x):', filter);
 
-            const events = await pool.querySync(relays, filter);
-            console.log('[fetchChunks] Got events (fallback #x):', events.length);
-
-            if (events.length > 0) {
-                console.log('[fetchChunks] First event tags (fallback #x):', events[0].tags);
-            }
-
-            for (const event of events) {
-                if (seenEventIds.has(event.id)) continue;
-                seenEventIds.add(event.id);
-
-                const index = parseChunkIndexFromTags(event.tags);
-                if (index == null) continue;
-
-                // Get encryption type from tags
-                const encryptionTag = event.tags.find(t => t[0] === 'encryption');
-                const encryption = encryptionTag?.[1] || 'none';
-
-                if (!chunksByIndex.has(index)) {
-                    const chunk = {
-                        index,
-                        content: event.content,
-                        encryption,
-                    };
-                    chunksByIndex.set(index, chunk);
-                    const entry = chunkCache.get(cacheKey);
-                    if (entry) entry.chunksByIndex.set(index, chunk);
-                    onProgress?.(chunksByIndex.size, totalChunks);
-                }
-            }
+            await fetchChunkEventsWithFilters(
+                pool,
+                relays,
+                [filter],
+                handleEvent,
+                () => chunksByIndex.size >= totalChunks
+            );
         }
+
+        return Array.from(chunksByIndex.values()).sort((a, b) => a.index - b.index);
     })();
 
     const entry = cached ?? { chunksByIndex: new Map<number, ChunkEvent>() };
@@ -344,15 +369,13 @@ export async function fetchChunks(
         chunkCache.set(cacheKey, entry);
     }
 
+    let chunks: ChunkEvent[];
     try {
-        await fetchPromise;
+        chunks = await fetchPromise;
     } finally {
         const current = chunkCache.get(cacheKey);
         if (current) current.inFlight = undefined;
     }
-
-    // Sort by index
-    const chunks = Array.from(chunksByIndex.values()).sort((a, b) => a.index - b.index);
 
     console.log('[fetchChunks] Returning chunks:', chunks.length);
     return chunks;
