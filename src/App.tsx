@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { Routes, Route, Navigate, useNavigate, useParams } from 'react-router-dom';
+import { Routes, Route, Navigate, useNavigate, useParams, Outlet } from 'react-router-dom';
 import { PublicKeyEntry } from './components/PublicKeyEntry';
 import { FileList } from './components/FileList';
 import { FileDetail } from './components/FileDetail';
@@ -37,7 +37,7 @@ function EntryRoute() {
 }
 
 function FileListRoute() {
-  const { pubkey: pubkeyParam } = useParams();
+  const { pubkey: pubkeyParam, fileHash } = useParams();
   const { pubkey, npub, error } = useMemo(() => normalizePubkeyParam(pubkeyParam), [pubkeyParam]);
 
   if (error || !pubkey) {
@@ -51,11 +51,16 @@ function FileListRoute() {
     );
   }
 
-  if (npub && pubkeyParam && isValidHexPubkey(pubkeyParam)) {
+  if (!fileHash && npub && pubkeyParam && isValidHexPubkey(pubkeyParam)) {
     return <Navigate to={`/files/${npub}`} replace />;
   }
 
-  return <FileList pubkey={pubkey} npub={npub ?? publicKeyToNpub(pubkey)} />;
+  return (
+    <>
+      <FileList pubkey={pubkey} npub={npub ?? publicKeyToNpub(pubkey)} inactive={Boolean(fileHash)} />
+      <Outlet />
+    </>
+  );
 }
 
 function FileDetailRoute() {
@@ -96,8 +101,9 @@ function App() {
     <div className="app">
       <Routes>
         <Route path="/" element={<EntryRoute />} />
-        <Route path="/files/:pubkey" element={<FileListRoute />} />
-        <Route path="/files/:pubkey/:fileHash" element={<FileDetailRoute />} />
+        <Route path="/files/:pubkey" element={<FileListRoute />}>
+          <Route path=":fileHash" element={<FileDetailRoute />} />
+        </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </div>

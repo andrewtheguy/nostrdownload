@@ -8,9 +8,10 @@ import './FileList.css';
 interface FileListProps {
     pubkey: string;
     npub: string;
+    inactive?: boolean;
 }
 
-export function FileList({ pubkey, npub }: FileListProps) {
+export function FileList({ pubkey, npub, inactive = false }: FileListProps) {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [index, setIndex] = useState<FileIndex | null>(null);
@@ -50,7 +51,7 @@ export function FileList({ pubkey, npub }: FileListProps) {
 
     const totalPages = index ? index.total_archives + 1 : 1;
     return (
-        <div className="file-list-container">
+        <div className={`file-list-container${inactive ? ' is-inactive' : ''}`}>
             <header className="file-list-header">
                 <Link className="back-button" to="/">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
