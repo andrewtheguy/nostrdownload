@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
-import type { FileEntry, FileIndex } from '../lib/types';
+import { Link } from 'react-router-dom';
+import type { FileIndex } from '../lib/types';
 import { createPool, fetchFileIndex, DEFAULT_INDEX_RELAYS } from '../lib/nostr';
 import { publicKeyToNpub } from '../lib/keys';
 import { FileCard } from './FileCard';
@@ -7,12 +8,9 @@ import './FileList.css';
 
 interface FileListProps {
     pubkey: string;
-    onDownload: (file: FileEntry) => void;
-    onPreview: (file: FileEntry) => void;
-    onBack: () => void;
 }
 
-export function FileList({ pubkey, onDownload, onPreview, onBack }: FileListProps) {
+export function FileList({ pubkey }: FileListProps) {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [index, setIndex] = useState<FileIndex | null>(null);
@@ -56,12 +54,12 @@ export function FileList({ pubkey, onDownload, onPreview, onBack }: FileListProp
     return (
         <div className="file-list-container">
             <header className="file-list-header">
-                <button className="back-button" onClick={onBack}>
+                <Link className="back-button" to="/">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                         <polyline points="15,18 9,12 15,6" />
                     </svg>
                     Back
-                </button>
+                </Link>
 
                 <div className="header-info">
                     <h1>Files</h1>
@@ -102,8 +100,7 @@ export function FileList({ pubkey, onDownload, onPreview, onBack }: FileListProp
                                     <FileCard
                                         key={file.file_hash}
                                         file={file}
-                                        onDownload={onDownload}
-                                        onPreview={onPreview}
+                                        pubkey={pubkey}
                                     />
                                 ))}
                             </div>

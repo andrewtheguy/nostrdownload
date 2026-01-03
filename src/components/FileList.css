@@ -25,6 +25,7 @@
     color: rgba(255, 255, 255, 0.8);
     cursor: pointer;
     transition: all 0.2s ease;
+    text-decoration: none;
 }
 
 .back-button:hover {
