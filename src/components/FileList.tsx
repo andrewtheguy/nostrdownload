@@ -66,7 +66,7 @@ export function FileList({ pubkey, onDownload, onPreview, onBack }: FileListProp
                 <div className="header-info">
                     <h1>Files</h1>
                     <code className="pubkey-display" title={npub}>
-                        {npub.slice(0, 12)}...{npub.slice(-8)}
+                        {npub}
                     </code>
                 </div>
             </header>

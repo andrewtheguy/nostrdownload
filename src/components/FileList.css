@@ -55,6 +55,7 @@
     font-size: 0.8rem;
     color: rgba(255, 255, 255, 0.5);
     font-family: 'SF Mono', 'Fira Code', monospace;
+    word-break: break-all;
 }
 
 .file-list-content {
