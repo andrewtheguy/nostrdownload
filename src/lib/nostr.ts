@@ -185,7 +185,7 @@ export interface ChunkEvent {
 
 type ChunkCacheEntry = {
     chunksByIndex: Map<number, ChunkEvent>;
-    inFlight?: Promise<ChunkEvent[]>;
+    inFlight?: Promise<void>;
 };
 
 const chunkCache = new Map<string, ChunkCacheEntry>();
