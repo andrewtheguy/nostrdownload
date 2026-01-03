@@ -11,11 +11,12 @@ import { EVENT_KINDS, D_TAGS, type FileIndex, type Manifest, type ChunkInfo } fr
  * These are commonly used nostr relays that support parameterized replaceable events
  */
 export const DEFAULT_INDEX_RELAYS = [
-    'wss://relay.damus.io',
-    'wss://relay.nostr.band',
     'wss://nos.lol',
-    'wss://relay.snort.social',
+    //'wss://relay.damus.io',
+    'wss://relay.nostr.band',
+    'wss://relay.nostr.net',
     'wss://relay.primal.net',
+    'wss://relay.snort.social',
 ];
 
 /**
