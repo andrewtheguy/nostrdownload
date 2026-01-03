@@ -15,7 +15,7 @@ export interface FileEntry {
  * File index event content (Kind 30080)
  */
 export interface FileIndex {
-  version: number;
+  version: 2;
   entries: FileEntry[];
   archive_number: number;
   total_archives: number;
@@ -34,7 +34,7 @@ export interface ChunkInfo {
  * Manifest event content (Kind 30079)
  */
 export interface Manifest {
-  version: number;
+  version: 2;
   file_name: string;
   file_hash: string;
   file_size: number;

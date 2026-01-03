@@ -13,7 +13,7 @@ import { EVENT_KINDS, D_TAGS, type FileIndex, type Manifest, type ChunkInfo } fr
 export const DEFAULT_INDEX_RELAYS = [
     'wss://nos.lol',
     //'wss://relay.damus.io',
-    'wss://relay.nostr.band',
+    //'wss://relay.nostr.band',
     'wss://relay.nostr.net',
     'wss://relay.primal.net',
     'wss://relay.snort.social',
@@ -69,12 +69,17 @@ export async function fetchFileIndex(
             a.created_at > b.created_at ? a : b
         );
 
+        let index: FileIndex;
         try {
-            return JSON.parse(event.content) as FileIndex;
+            index = JSON.parse(event.content) as FileIndex;
         } catch {
             console.error('Failed to parse index content');
             return null;
         }
+        if (index.version !== 2) {
+            throw new Error(`Unsupported index version ${index.version}. Only version 2 is supported.`);
+        }
+        return index;
     } else {
         // For archive pages, we need to fetch page 1 first to get total_archives
         const currentIndex = await fetchFileIndex(pool, relays, pubkey, 1);
@@ -96,12 +101,17 @@ export async function fetchFileIndex(
             a.created_at > b.created_at ? a : b
         );
 
+        let index: FileIndex;
         try {
-            return JSON.parse(event.content) as FileIndex;
+            index = JSON.parse(event.content) as FileIndex;
         } catch {
             console.error('Failed to parse archive content');
             return null;
         }
+        if (index.version !== 2) {
+            throw new Error(`Unsupported index version ${index.version}. Only version 2 is supported.`);
+        }
+        return index;
     }
 }
 
@@ -145,19 +155,23 @@ export async function fetchManifest(
         a.created_at > b.created_at ? a : b
     );
 
+    let manifest: Manifest;
     try {
-        const manifest = JSON.parse(event.content) as Manifest;
-        console.log('[fetchManifest] Parsed manifest:', {
-            file_name: manifest.file_name,
-            total_chunks: manifest.total_chunks,
-            relays: manifest.relays,
-            encryption: manifest.encryption,
-        });
-        return manifest;
+        manifest = JSON.parse(event.content) as Manifest;
     } catch {
         console.error('Failed to parse manifest content');
         return null;
     }
+    if (manifest.version !== 2) {
+        throw new Error(`Unsupported manifest version ${manifest.version}. Only version 2 is supported.`);
+    }
+    console.log('[fetchManifest] Parsed manifest:', {
+        file_name: manifest.file_name,
+        total_chunks: manifest.total_chunks,
+        relays: manifest.relays,
+        encryption: manifest.encryption,
+    });
+    return manifest;
 }
 
 /**
