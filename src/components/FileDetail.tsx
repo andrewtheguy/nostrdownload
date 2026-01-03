@@ -7,7 +7,7 @@ import { decryptChunkBinary } from '../lib/crypto';
 import { clearSecretKey, isValidNsec, nsecToSecretKey } from '../lib/keys';
 import './FileDetail.css';
 
-const MAX_PREVIEW_BYTES = 1024 * 1024;
+const MAX_PREVIEW_BYTES = 5 * 1024 * 1024;
 
 type DownloadState =
     | { status: 'idle' }
@@ -28,6 +28,10 @@ function formatBytes(bytes: number): string {
     const sizes = ['B', 'KB', 'MB', 'GB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return `${parseFloat((bytes / Math.pow(k, i)).toFixed(1))} ${sizes[i]}`;
+}
+
+function formatMegabytes(bytes: number): string {
+    return `${Math.round(bytes / (1024 * 1024))} MB`;
 }
 
 function formatDate(timestamp: number): string {
@@ -464,7 +468,7 @@ export function FileDetail({ pubkey, npub, fileHash }: FileDetailProps) {
                             <div className="card-header">
                                 <h2>Preview</h2>
                                 {!isEncrypted && (
-                                    <span className="preview-limit">Preview limit: 1 MB</span>
+                                    <span className="preview-limit">Preview limit: {formatMegabytes(MAX_PREVIEW_BYTES)}</span>
                                 )}
                             </div>
 
@@ -478,7 +482,7 @@ export function FileDetail({ pubkey, npub, fileHash }: FileDetailProps) {
                                 <div className="preview-message">
                                     <span>
                                         {manifest.file_size > MAX_PREVIEW_BYTES
-                                            ? 'Preview disabled for files larger than 1 MB.'
+                                            ? `Preview disabled for files larger than ${formatMegabytes(MAX_PREVIEW_BYTES)}.`
                                             : `Preview not available for ${mimeTypeGuess || 'this file type'}.`}
                                     </span>
                                 </div>
